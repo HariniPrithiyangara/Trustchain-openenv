@@ -1,0 +1,45 @@
+# ── Python ────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# ── Virtual environments ───────────────────────────────
+.venv/
+venv/
+env/
+
+# ── uv ────────────────────────────────────────────────
+# Keep uv.lock for reproducibility – do NOT ignore it
+
+# ── OS junk ───────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDE ───────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Secrets ───────────────────────────────────────────
+.env
+.env.*
+*.pem
+*.key
+
+# ── Test / temp artifacts ─────────────────────────────
+*.txt
+!README.md
+validate_windows.py
+eval_run.txt
+val_out.txt
+validate.txt
+
+# ── Docker ────────────────────────────────────────────
+# Dockerfile is intentionally committed
