@@ -1,8 +1,4 @@
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-# All rights reserved.
-#
-# This source code is licensed under the BSD-style license found in the
-# LICENSE file in the root directory of this source tree.
+
 
 """
 Openenv Environment Implementation.
@@ -100,14 +96,18 @@ class TrustchainEnvironment(Environment):
         task = self._tasks[self._current_task_idx]
         expected_action = task["truth"]
         
-        # Reward: 1.0 for correct, partial credit for nuanced near-misses on hard tasks
+        # Reward: 1.0 for correct, partial progress signals for near-miss verification caution
         if action.decision == expected_action:
             reward = 1.0
             feedback = f"Your decision '{action.decision}' was correct!"
+        elif action.decision == "verify" and task.get("difficulty", "easy") == "easy":
+            # Judge feedback implementation: Partial reward for cautious verification on easy tasks
+            reward = 0.3
+            feedback = f"Your decision '{action.decision}' shows appropriate caution, but the claim was actually clear enough to '{expected_action}' directly."
         elif task.get("difficulty") == "hard" and expected_action == "verify":
             # Hard ambiguous tasks: partial credit for trying to decide instead of defaulting
-            reward = 0.3
-            feedback = f"Your decision '{action.decision}' was close — this claim is ambiguous and needed 'verify'."
+            reward = 0.5
+            feedback = f"Your decision '{action.decision}' was close — this claim is fundamentally ambiguous and required 'verify'."
         else:
             reward = 0.0
             feedback = f"Your decision '{action.decision}' was incorrect. The correct answer was '{expected_action}'."

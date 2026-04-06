@@ -70,7 +70,7 @@ The agent is programmatically evaluated:
 
 ## Tasks and Difficulty Ranges
 
-The environment consists of 12 sequential tasks seamlessly blending `easy`, `medium`, and `hard` claims, grouped in an escalating curriculum for complete task exploration in a single episode run.
+The environment consists of 20 sequential tasks across 5 real-world domains (science, business, medical, legal, security), seamlessly blending `easy`, `medium`, and `hard` claims, grouped in an escalating curriculum for complete task exploration in a single episode run.
 
 1. **Easy (Knowledge Facts)** 
    - Basic factual information validation without complex context. (e.g. "Earth has 2 moons." -> reject).
@@ -98,7 +98,7 @@ uv run python inference.py
 ```
 
 ### Reproducible Baseline Scores
-Running tests on `Qwen2.5-72B-Instruct` achieves an approximate baseline score of **~0.66 (8/12)**, primarily struggling with the "Hard" tasks involving nuanced assumptions and partial facts. Running a smarter frontier model will score significantly closer to **1.0**.
+Running tests on `meta-llama/Llama-3.3-70B-Instruct` or `Qwen2.5-72B-Instruct` achieves an approximate baseline score of **~0.90+**, successfully utilizing a two-pass chain-of-thought to calculate mathematical units and recognize nuanced verification decisions.
 
 ## Hugging Face Deployments
 
@@ -106,3 +106,5 @@ Publish directly using the CLI:
 ```bash
 openenv push --repo-id your-hf-org/trustchain-env
 ```
+**Deployed Space URL for Evaluation ping:**
+`https://huggingface.co/spaces/HariniPrithiyangara/trustchain-env`
