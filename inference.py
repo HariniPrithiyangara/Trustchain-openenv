@@ -8,11 +8,13 @@ from openai import OpenAI
 from client import TrustchainEnv
 from models import TrustchainAction
 
-# ── Environment configuration (per hackathon spec) ───────────────────────────
+# ── Required variables (exact hackathon spec format) ──────────────────────────
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "meta-llama/Llama-3.3-70B-Instruct")
 HF_TOKEN = os.getenv("HF_TOKEN")
-LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")  # Optional: for from_docker_image()
+
+# Optional — if you use from_docker_image():
+LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")
 
 TASK_NAME = "trustchain_eval"
 BENCHMARK = "trustchain"
@@ -120,7 +122,10 @@ def get_model_decision(client: OpenAI, claim: str, context: Optional[str], diffi
 
 # ── Main episode loop ─────────────────────────────────────────────────────────
 async def main() -> None:
-    client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN or "dummy_key")
+    if not HF_TOKEN:
+        raise RuntimeError("HF_TOKEN is required. Set HF_TOKEN in your environment before running inference.")
+
+    client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
 
     if LOCAL_IMAGE_NAME:
         env = await TrustchainEnv.from_docker_image(LOCAL_IMAGE_NAME)

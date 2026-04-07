@@ -1,10 +1,6 @@
 
 
-"""
-Data models for the Openenv Environment.
-
-The openenv environment is a simple test environment that echoes back messages.
-"""
+"""Data models for the TrustChain OpenEnv environment."""
 
 from typing import Literal, Optional
 from openenv.core.env_server.types import Action, Observation

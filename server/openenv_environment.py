@@ -1,14 +1,9 @@
 
 
-"""
-Openenv Environment Implementation.
+"""TrustChain OpenEnv environment implementation."""
 
-A simple test environment that echoes back messages sent to it.
-Perfect for testing HTTP server infrastructure.
-"""
-
-import os
-from typing import Dict, List, Any
+import random
+from typing import Dict, List
 from uuid import uuid4
 
 from openenv.core.env_server.interfaces import Environment
@@ -59,26 +54,33 @@ class TrustchainEnvironment(Environment):
         """Initialize the trustchain environment."""
         self._state = State(episode_id=str(uuid4()), step_count=0)
         self._reset_count = 0
-        self._tasks = EASY_TASKS + MEDIUM_TASKS + HARD_TASKS
+        self._seed = 42
+        self._rng = random.Random(self._seed)
+        self._tasks = self._build_tasks()
         self._current_task_idx = 0
+
+    def _build_tasks(self) -> List[Dict[str, str]]:
+        """Build a deterministic but non-fixed episode task order."""
+        easy = [dict(t, difficulty="easy") for t in EASY_TASKS]
+        medium = [dict(t, difficulty="medium") for t in MEDIUM_TASKS]
+        hard = [dict(t, difficulty="hard") for t in HARD_TASKS]
+        self._rng.shuffle(easy)
+        self._rng.shuffle(medium)
+        self._rng.shuffle(hard)
+        return easy + medium + hard
 
     def reset(self) -> TrustchainObservation:
         """Reset the environment to start a new episode."""
         self._state = State(episode_id=str(uuid4()), step_count=0)
         self._reset_count += 1
-        
-        self._tasks = EASY_TASKS + MEDIUM_TASKS + HARD_TASKS
+
+        # Keep episodes reproducible while preventing simple memorization.
+        self._rng = random.Random(self._seed + self._reset_count)
+        self._tasks = self._build_tasks()
         self._current_task_idx = 0
 
         task = self._tasks[self._current_task_idx]
-        
-        # Determine difficulty based on index
-        if self._current_task_idx < len(EASY_TASKS):
-            difficulty = "easy"
-        elif self._current_task_idx < len(EASY_TASKS) + len(MEDIUM_TASKS):
-            difficulty = "medium"
-        else:
-            difficulty = "hard"
+        difficulty = task["difficulty"]
 
         return TrustchainObservation(
             claim=task["claim"],
@@ -96,18 +98,19 @@ class TrustchainEnvironment(Environment):
         task = self._tasks[self._current_task_idx]
         expected_action = task["truth"]
         
-        # Reward: 1.0 for correct, partial progress signals for near-miss verification caution
+        # Reward shaping: dense and bounded in [0.0, 1.0].
         if action.decision == expected_action:
             reward = 1.0
             feedback = f"Your decision '{action.decision}' was correct!"
-        elif action.decision == "verify" and task.get("difficulty", "easy") == "easy":
-            # Judge feedback implementation: Partial reward for cautious verification on easy tasks
+        elif action.decision == "verify" and task["difficulty"] in {"easy", "medium"}:
             reward = 0.3
             feedback = f"Your decision '{action.decision}' shows appropriate caution, but the claim was actually clear enough to '{expected_action}' directly."
-        elif task.get("difficulty") == "hard" and expected_action == "verify":
-            # Hard ambiguous tasks: partial credit for trying to decide instead of defaulting
+        elif task["difficulty"] == "hard" and expected_action == "verify":
             reward = 0.5
             feedback = f"Your decision '{action.decision}' was close — this claim is fundamentally ambiguous and required 'verify'."
+        elif task["difficulty"] == "hard" and action.decision != "verify":
+            reward = 0.2
+            feedback = f"Hard claim judged as '{action.decision}'. Use caution for uncertain evidence; expected '{expected_action}'."
         else:
             reward = 0.0
             feedback = f"Your decision '{action.decision}' was incorrect. The correct answer was '{expected_action}'."
@@ -116,15 +119,7 @@ class TrustchainEnvironment(Environment):
         done = self._current_task_idx >= len(self._tasks)
 
         next_task = self._tasks[self._current_task_idx] if not done else None
-        next_idx = self._current_task_idx
-        if next_task is None:
-            next_difficulty = ""
-        elif next_idx < len(EASY_TASKS):
-            next_difficulty = "easy"
-        elif next_idx < len(EASY_TASKS) + len(MEDIUM_TASKS):
-            next_difficulty = "medium"
-        else:
-            next_difficulty = "hard"
+        next_difficulty = next_task["difficulty"] if next_task else ""
 
         return TrustchainObservation(
             claim=next_task["claim"] if next_task else "",
