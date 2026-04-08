@@ -1,7 +1,7 @@
 # 🔗 TrustChain: Multi-Agent Verification Environment
 
 **GitHub Repository:** [https://github.com/HariniPrithiyangara/Trustchain-openenv](https://github.com/HariniPrithiyangara/Trustchain-openenv)  
-**Hugging Face Space:** *(Add your Hugging Face Space URL here after deployment)*
+**Hugging Face Space:** [https://huggingface.co/spaces/HariniPrithiyangara/trustchain-openenv](https://huggingface.co/spaces/HariniPrithiyangara/trustchain-openenv)
 
 The #1 open problem in multi-agent AI is **trust and propagation**. When agents blindly trust outputs from other agents, a single hallucinated piece of information silently corrupts the entire pipeline, causing compounding errors across agentic workflows. 
 
