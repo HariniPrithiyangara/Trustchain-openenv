@@ -1,7 +1,6 @@
+"""TrustChain OpenEnv server components."""
 
+from .environment import TrustChainEnvironment
+from .models import TrustChainAction, TrustChainObservation
 
-"""Openenv environment server components."""
-
-from .openenv_environment import TrustchainEnvironment
-
-__all__ = ["TrustchainEnvironment"]
+__all__ = ["TrustChainEnvironment", "TrustChainAction", "TrustChainObservation"]
