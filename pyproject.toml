@@ -1,5 +1,5 @@
-# TrustChain: Multi-Agent Verification Environment
-# Copyright (c) 2026 TrustChain Contributors
+# CloudOps: Incident Responder Environment
+# Copyright (c) 2026 CloudOps Contributors
 # Licensed under the MIT License
 
 [build-system]
@@ -7,9 +7,9 @@ requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "trustchain-openenv"
+name = "cloudops-openenv"
 version = "0.1.0"
-description = "TrustChain OpenEnv environment for multi-agent claim verification"
+description = "CloudOps Incident Responder: High-fidelity SRE benchmark"
 requires-python = ">=3.10"
 dependencies = [
     "openenv-core[core]>=0.2.2",
@@ -27,5 +27,5 @@ server = "server.app:main"
 
 [tool.setuptools]
 include-package-data = true
-packages = ["server", "openenv"]
-package-dir = { "server" = "server", "openenv" = "." }
+packages = ["server"]
+package-dir = { "server" = "server" }

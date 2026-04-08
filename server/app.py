@@ -19,21 +19,16 @@ except Exception as e:  # pragma: no cover
         "openenv-core is required for the web interface. Install with 'pip install openenv-core[core]'"
     ) from e
 
-try:
-    from models import TrustchainAction, TrustchainObservation
-    from server.openenv_environment import TrustchainEnvironment
-except ImportError:
-    # Fallback for different import paths
-    from openenv.models import TrustchainAction, TrustchainObservation
-    from openenv.server.openenv_environment import TrustchainEnvironment
+from models import CloudOpsAction, CloudOpsObservation
+from server.openenv_environment import CloudOpsEnvironment
 
 
 # Create the app with web interface and README integration
 app = create_app(
-    TrustchainEnvironment,
-    TrustchainAction,
-    TrustchainObservation,
-    env_name="trustchain",
+    CloudOpsEnvironment,
+    CloudOpsAction,
+    CloudOpsObservation,
+    env_name="cloudops",
     max_concurrent_envs=1,
 )
 

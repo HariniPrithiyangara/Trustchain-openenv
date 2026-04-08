@@ -1,5 +1,5 @@
 
-"""Openenv Environment Client for TrustChain."""
+"""Openenv Environment Client for CloudOps."""
 
 from typing import Dict, Any, Optional
 
@@ -8,46 +8,44 @@ from openenv.core.client_types import StepResult
 from openenv.core.env_server.types import State
 
 try:
-    from models import TrustchainAction, TrustchainObservation
+    from models import CloudOpsAction, CloudOpsObservation
 except ImportError:
-    from openenv.models import TrustchainAction, TrustchainObservation
+    from openenv.models import CloudOpsAction, CloudOpsObservation
 
 
-class TrustchainEnv(
-    EnvClient[TrustchainAction, TrustchainObservation, State]
+class CloudOpsEnv(
+    EnvClient[CloudOpsAction, CloudOpsObservation, State]
 ):
     """
-    Client for the Trustchain Environment.
-
-    This client maintains a persistent WebSocket connection to the environment server,
-    enabling efficient multi-step interactions with lower latency.
-    Each client instance has its own dedicated environment session on the server.
+    Client for the CloudOps Environment.
     """
 
-    async def reset(self, task: Optional[str] = None, seed: Optional[int] = None) -> StepResult[TrustchainObservation]:
+    async def reset(self, task: Optional[str] = None, seed: Optional[int] = None) -> StepResult[CloudOpsObservation]:
         """
         Reset the environment and return the initial observation.
         """
         payload = {"task": task, "seed": seed}
         return await super().reset(**payload)
 
-    def _step_payload(self, action: TrustchainAction) -> Dict[str, Any]:
+    def _step_payload(self, action: CloudOpsAction) -> Dict[str, Any]:
         """
-        Convert TrustchainAction to JSON payload for step message.
+        Convert CloudOpsAction to JSON payload for step message.
         """
         return {
-            "decision": action.decision,
+            "action_type": action.action_type,
+            "resource_id": action.resource_id,
         }
 
-    def _parse_result(self, payload: Dict[str, Any]) -> StepResult[TrustchainObservation]:
+    def _parse_result(self, payload: Dict[str, Any]) -> StepResult[CloudOpsObservation]:
         """
-        Parse server response into StepResult[TrustchainObservation].
+        Parse server response into StepResult[CloudOpsObservation].
         """
         obs_data = payload.get("observation", {})
-        observation = TrustchainObservation(
-            claim=obs_data.get("claim", ""),
-            context=obs_data.get("context"),
-            difficulty=obs_data.get("difficulty", ""),
+        observation = CloudOpsObservation(
+            alert=obs_data.get("alert", ""),
+            resources=obs_data.get("resources", []),
+            logs=obs_data.get("logs"),
+            difficulty=obs_data.get("difficulty", "easy"),
             feedback=obs_data.get("feedback", ""),
             done=payload.get("done", False),
             reward=payload.get("reward"),

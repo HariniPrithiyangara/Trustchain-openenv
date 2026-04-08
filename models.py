@@ -1,23 +1,27 @@
 
-"""Data models for the TrustChain OpenEnv environment."""
+"""Data models for the CloudOps Incident Responder environment."""
 
-from typing import Literal, Optional
+from typing import Literal, Optional, List, Dict, Any
 from openenv.core.env_server.types import Action, Observation
-from pydantic import Field
+from pydantic import Field, BaseModel
 
 
-class TrustchainAction(Action):
-    """Action for the Trustchain environment - accept, reject, or verify."""
+class CloudOpsAction(Action):
+    """Action for the CloudOps environment."""
 
-    decision: Literal["accept", "reject", "verify"] = Field(
-        ..., description="The decision to make regarding the claim: 'accept' (true), 'reject' (false), or 'verify' (ambiguous)."
+    action_type: Literal["list_resources", "read_logs", "restart_service", "scale_up", "rollback", "delete_resource"] = Field(
+        ..., description="The type of SRE action to perform."
+    )
+    resource_id: Optional[str] = Field(
+        None, description="The ID of the resource (VM, DB, or Service) to act upon."
     )
 
 
-class TrustchainObservation(Observation):
-    """Observation from the Trustchain environment - claim to verify."""
+class CloudOpsObservation(Observation):
+    """Observation from the CloudOps environment."""
 
-    claim: str = Field(default="", description="The claim made by the reporter agent")
-    context: Optional[str] = Field(default=None, description="Optional context or source document for verification")
-    difficulty: str = Field(default="", description="Task difficulty: easy, medium, or hard")
-    feedback: str = Field(default="", description="Feedback on the previous action with reasoning")
+    alert: str = Field(default="", description="The current system alert or incident description.")
+    resources: List[Dict[str, Any]] = Field(default_factory=list, description="List of infrastructure resources and their metrics.")
+    logs: Optional[str] = Field(default=None, description="Logs retrieved if the last action was 'read_logs'.")
+    feedback: str = Field(default="", description="Feedback on the effectiveness of the previous action.")
+    difficulty: str = Field(default="easy", description="The difficulty tier of the current incident.")
