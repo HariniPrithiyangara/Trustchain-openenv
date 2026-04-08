@@ -1,14 +1,81 @@
-spec_version: 1
-name: trustchain
-description: TrustChain Verification Environment for multi-agent hallucination detection.
-type: space
-runtime: fastapi
-app: server.app:app
-port: 8000
+name: trustchain-env
+version: "1.0.0"
+description: >
+  TrustChain OpenEnv — a supply-chain credential verification environment
+  where an AI agent validates, traces, and audits product provenance records
+  stored on an immutable ledger. Models a real-world compliance and
+  anti-counterfeiting workflow.
+
+authors:
+  - HariniPrithiyangara
+
+tags:
+  - supply-chain
+  - compliance
+  - verification
+  - real-world
 
 tasks:
-  - easy
-  - medium
-  - hard
+  - id: verify_credential
+    name: Verify a Single Credential
+    description: >
+      Given one product credential (issuer DID, product ID, timestamp, signature),
+      the agent must determine whether it is VALID or INVALID.
+      Easy — single-hop, no chain traversal required.
+    difficulty: easy
+    max_steps: 5
+    grader: trustchain_env.graders:VerifyCredentialGrader
 
-reward_range: [-0.5, 1.0]
+  - id: trace_provenance
+    name: Trace Full Provenance Chain
+    description: >
+      Given a product ID, the agent must traverse the full chain of custody
+      (manufacturer -> distributor -> retailer) and output each hop in order.
+      Medium — requires multi-step reasoning over the ledger state.
+    difficulty: medium
+    max_steps: 10
+    grader: trustchain_env.graders:TraceProvenanceGrader
+
+  - id: audit_anomaly
+    name: Detect and Explain Supply-Chain Anomaly
+    description: >
+      The ledger contains one tampered record. The agent must identify
+      which credential is invalid, state the reason (timestamp out of order,
+      signature mismatch, or unknown issuer), and propose a remediation step.
+      Hard — requires full chain analysis plus causal reasoning.
+    difficulty: hard
+    max_steps: 15
+    grader: trustchain_env.graders:AuditAnomalyGrader
+
+action_space:
+  type: object
+  properties:
+    action_type:
+      type: string
+      enum: [lookup, verify, trace, report, done]
+    target_id:
+      type: string
+    verdict:
+      type: string
+      enum: [VALID, INVALID]
+    reason:
+      type: string
+    remediation:
+      type: string
+
+observation_space:
+  type: object
+  properties:
+    ledger_snapshot:
+      type: array
+    last_result:
+      type: string
+    error:
+      type: string
+      nullable: true
+    done:
+      type: boolean
+    task_id:
+      type: string
+    step:
+      type: integer
