@@ -1,5 +1,4 @@
 
-
 """Data models for the TrustChain OpenEnv environment."""
 
 from typing import Literal, Optional
@@ -11,7 +10,7 @@ class TrustchainAction(Action):
     """Action for the Trustchain environment - accept, reject, or verify."""
 
     decision: Literal["accept", "reject", "verify"] = Field(
-        ..., description="The decision to make regarding the claim: 'accept', 'reject', or 'verify'."
+        ..., description="The decision to make regarding the claim: 'accept' (true), 'reject' (false), or 'verify' (ambiguous)."
     )
 
 
@@ -19,6 +18,6 @@ class TrustchainObservation(Observation):
     """Observation from the Trustchain environment - claim to verify."""
 
     claim: str = Field(default="", description="The claim made by the reporter agent")
-    context: Optional[str] = Field(default=None, description="Optional context or source document")
+    context: Optional[str] = Field(default=None, description="Optional context or source document for verification")
     difficulty: str = Field(default="", description="Task difficulty: easy, medium, or hard")
-    feedback: str = Field(default="", description="Feedback on the previous action")
+    feedback: str = Field(default="", description="Feedback on the previous action with reasoning")

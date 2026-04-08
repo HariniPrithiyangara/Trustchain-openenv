@@ -1,3 +1,20 @@
+
+"""
+TrustChain OpenEnv — Inference Script
+======================================
+Hackathon-compliant baseline inference script for the TrustChain environment.
+
+Environment Variables (required):
+    API_BASE_URL      The API endpoint for the LLM (default: HF router)
+    MODEL_NAME        The model identifier (default: Llama-3.3-70B-Instruct)
+    HF_TOKEN          Your Hugging Face / API key (NO default — must be set)
+    LOCAL_IMAGE_NAME  Optional: local Docker image name for from_docker_image()
+
+Usage:
+    export HF_TOKEN="hf_..."
+    uv run python inference.py
+"""
+
 import asyncio
 import os
 import textwrap
@@ -8,18 +25,17 @@ from openai import OpenAI
 from client import TrustchainEnv
 from models import TrustchainAction
 
-# ── Required variables (exact hackathon spec format) ──────────────────────────
+# ── Environment configuration (per hackathon spec) ────────────────────────────
+# Defaults set ONLY for API_BASE_URL and MODEL_NAME — never for HF_TOKEN
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "meta-llama/Llama-3.3-70B-Instruct")
-HF_TOKEN = os.getenv("HF_TOKEN")
-
-# Optional — if you use from_docker_image():
-LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")
+HF_TOKEN = os.getenv("HF_TOKEN")  # No default — must be provided
+LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")  # Optional: for from_docker_image()
 
 TASK_NAME = "trustchain_eval"
 BENCHMARK = "trustchain"
 
-# ── System prompt: chain-of-thought internally, single word output ────────────
+# ── System prompt: chain-of-thought reasoning, single-word output ─────────────
 SYSTEM_PROMPT = textwrap.dedent(
     """
     You are an expert fact-checking and reasoning agent.
@@ -50,20 +66,27 @@ SYSTEM_PROMPT = textwrap.dedent(
 ).strip()
 
 
-# ── STDOUT logging helpers (exact hackathon format) ───────────────────────────
+# ── STDOUT logging helpers — exact hackathon format ───────────────────────────
 def log_start(task: str, env: str, model: str) -> None:
     print(f"[START] task={task} env={env} model={model}", flush=True)
 
 
 def log_step(step: int, action: str, reward: float, done: bool, error: Optional[str]) -> None:
     error_val = error if error else "null"
-    done_val  = str(done).lower()
-    print(f"[STEP] step={step} action={action} reward={reward:.2f} done={done_val} error={error_val}", flush=True)
+    done_val = str(done).lower()
+    print(
+        f"[STEP] step={step} action={action} reward={reward:.2f} done={done_val} error={error_val}",
+        flush=True,
+    )
 
 
 def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> None:
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
-    print(f"[END] success={str(success).lower()} steps={steps} score={score:.2f} rewards={rewards_str}", flush=True)
+    # score uses 2 decimal places to match spec exactly (e.g. 1.00)
+    print(
+        f"[END] success={str(success).lower()} steps={steps} score={score:.2f} rewards={rewards_str}",
+        flush=True,
+    )
 
 
 # ── Prompt builder ────────────────────────────────────────────────────────────
@@ -80,39 +103,63 @@ def build_user_prompt(claim: str, context: Optional[str], difficulty: str) -> st
     ).strip()
 
 
-# ── Model call with chain-of-thought ─────────────────────────────────────────
-def get_model_decision(client: OpenAI, claim: str, context: Optional[str], difficulty: str) -> str:
+# ── Two-pass Chain-of-Thought model call ──────────────────────────────────────
+def get_model_decision(
+    client: OpenAI,
+    claim: str,
+    context: Optional[str],
+    difficulty: str,
+) -> str:
+    """
+    Two-pass CoT strategy:
+      Pass 1 — Ask model to reason step-by-step through the claim.
+      Pass 2 — Extract the final single-word decision from the reasoning.
+
+    Falls back to "verify" (safest option) on any API error.
+    """
     user_prompt = build_user_prompt(claim, context, difficulty)
     try:
-        # First pass: ask model to reason step-by-step
-        reasoning = client.chat.completions.create(
+        # Pass 1: generate step-by-step reasoning
+        reasoning_resp = client.chat.completions.create(
             model=MODEL_NAME,
             messages=[
-                {"role": "system",  "content": SYSTEM_PROMPT},
-                {"role": "user",    "content": user_prompt},
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
                 {"role": "assistant", "content": "Let me reason through this carefully:\n"},
             ],
             temperature=0.0,
             max_tokens=200,
         )
-        thought = reasoning.choices[0].message.content or ""
+        thought = reasoning_resp.choices[0].message.content or ""
 
-        # Second pass: force extraction of final single-word decision
+        # Pass 2: extract final single-word decision
         decision_resp = client.chat.completions.create(
             model=MODEL_NAME,
             messages=[
-                {"role": "system",    "content": "You are a precise decision extractor. Given a reasoning block, output EXACTLY ONE word: accept, reject, or verify."},
-                {"role": "user",      "content": f"Reasoning:\n{thought}\n\nFinal answer (one word only):"},
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a precise decision extractor. "
+                        "Given a reasoning block, output EXACTLY ONE word: accept, reject, or verify."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"Reasoning:\n{thought}\n\nFinal answer (one word only):",
+                },
             ],
             temperature=0.0,
             max_tokens=5,
         )
         text = (decision_resp.choices[0].message.content or "").strip().lower()
 
-        if "accept" in text:   return "accept"
-        if "reject" in text:   return "reject"
-        if "verify" in text:   return "verify"
-        return "verify"   # safe fallback
+        if "accept" in text:
+            return "accept"
+        if "reject" in text:
+            return "reject"
+        if "verify" in text:
+            return "verify"
+        return "verify"  # safe fallback
 
     except Exception as exc:
         import sys
@@ -122,45 +169,59 @@ def get_model_decision(client: OpenAI, claim: str, context: Optional[str], diffi
 
 # ── Main episode loop ─────────────────────────────────────────────────────────
 async def main() -> None:
+    # Check for HF_TOKEN as it is mandatory
     if not HF_TOKEN:
-        raise RuntimeError("HF_TOKEN is required. Set HF_TOKEN in your environment before running inference.")
+        import sys
+        print("[ERROR] HF_TOKEN environment variable is not set. Disqualified.", file=sys.stderr)
+        return
 
-    client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
+    # All LLM calls use the OpenAI client with env-var credentials
+    client = OpenAI(
+        base_url=API_BASE_URL,
+        api_key=HF_TOKEN,
+    )
 
+    # Connect to environment (Docker image or localhost server)
     if LOCAL_IMAGE_NAME:
         env = await TrustchainEnv.from_docker_image(LOCAL_IMAGE_NAME)
     else:
         env = TrustchainEnv(base_url="http://localhost:8000")
         await env.connect()
 
-    rewards:      List[float] = []
-    steps_taken:  int         = 0
-    score:        float       = 0.0
-    success:      bool        = False
+    rewards: List[float] = []
+    steps_taken: int = 0
+    score: float = 0.0
+    success: bool = False
 
     log_start(task=TASK_NAME, env=BENCHMARK, model=MODEL_NAME)
 
     try:
         result = await env.reset()
-        done   = result.done
+        done = result.done
 
-        for step in range(1, 25):   # generous upper bound for any task count
+        # Episode ends when done=True (after 20 tasks)
+        for step in range(1, 25):
             if done:
                 break
 
-            obs      = result.observation
-            decision = get_model_decision(client, obs.claim, obs.context, obs.difficulty)
-            action   = TrustchainAction(decision=decision)  # type: ignore
+            obs = result.observation
+            decision = get_model_decision(
+                client,
+                obs.claim,
+                obs.context,
+                obs.difficulty,
+            )
+            action = TrustchainAction(decision=decision)  # type: ignore[call-arg]
 
             try:
                 result = await env.step(action)
                 reward = result.reward or 0.0
-                done   = result.done
-                error  = None
-            except Exception as e:
+                done = result.done
+                error = None
+            except Exception as exc:
                 reward = 0.0
-                done   = True
-                error  = str(e)
+                done = True
+                error = str(exc)
 
             rewards.append(reward)
             steps_taken = step
@@ -170,9 +231,11 @@ async def main() -> None:
             if error:
                 break
 
-        total_possible = steps_taken * 1.0
-        score   = sum(rewards) / total_possible if total_possible > 0 else 0.0
-        success = score > 0.5
+        # Normalise score to [0, 1]
+        total_possible = float(steps_taken) if steps_taken > 0 else 1.0
+        score = sum(rewards) / total_possible
+        score = max(0.0, min(1.0, score))
+        success = score >= 0.7  # Higher success threshold for 100/100
 
     finally:
         try:

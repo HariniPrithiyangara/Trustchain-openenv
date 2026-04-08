@@ -1,8 +1,6 @@
+"""Openenv Environment Client for TrustChain."""
 
-
-"""Openenv Environment Client."""
-
-from typing import Dict
+from typing import Dict, Any
 
 from openenv.core import EnvClient
 from openenv.core.client_types import StepResult
@@ -25,7 +23,7 @@ class TrustchainEnv(
     Each client instance has its own dedicated environment session on the server.
     """
 
-    def _step_payload(self, action: TrustchainAction) -> Dict:
+    def _step_payload(self, action: TrustchainAction) -> Dict[str, Any]:
         """
         Convert TrustchainAction to JSON payload for step message.
         """
@@ -33,7 +31,7 @@ class TrustchainEnv(
             "decision": action.decision,
         }
 
-    def _parse_result(self, payload: Dict) -> StepResult[TrustchainObservation]:
+    def _parse_result(self, payload: Dict[str, Any]) -> StepResult[TrustchainObservation]:
         """
         Parse server response into StepResult[TrustchainObservation].
         """
@@ -54,7 +52,7 @@ class TrustchainEnv(
             done=payload.get("done", False),
         )
 
-    def _parse_state(self, payload: Dict) -> State:
+    def _parse_state(self, payload: Dict[str, Any]) -> State:
         """
         Parse server response into State object.
         """

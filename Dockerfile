@@ -1,10 +1,6 @@
 
-
-# Multi-stage build using openenv-base
-# This Dockerfile is flexible and works for both:
-# - In-repo environments (with local OpenEnv sources)
-# - Standalone environments (with openenv from PyPI/Git)
-# The build script (openenv build) handles context detection and sets appropriate build args.
+# OpenEnv Dockerfile
+# Optimized for Hugging Face Spaces and RL evaluation
 
 ARG BASE_IMAGE=python:3.11-slim
 FROM ${BASE_IMAGE} AS builder
