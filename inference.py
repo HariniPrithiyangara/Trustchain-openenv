@@ -154,7 +154,7 @@ async def run_task(client: OpenAI, env: TrustchainEnv, task_id: str) -> None:
     max_steps = TASK_LENGTHS.get(task_id, 10)
     
     try:
-        result = await env.reset(task_id=task_id)
+        result = await env.reset(task=task_id)
         done = result.done
 
         # OpenEnv episodes for TrustChain are finite (6-8 steps per task)

@@ -62,7 +62,7 @@ class TrustchainEnvironment(Environment):
         self._current_task_idx = 0
         self._active_task_id = "trustchain_easy"
 
-    def reset(self, task_id: Optional[str] = None, seed: Optional[int] = None) -> TrustchainObservation:
+    def reset(self, task: Optional[str] = None, seed: Optional[int] = None) -> TrustchainObservation:
         """Reset the environment to start a new episode for a specific task."""
         self._state = State(episode_id=str(uuid4()), step_count=0)
         
@@ -71,9 +71,9 @@ class TrustchainEnvironment(Environment):
         
         self._rng = random.Random(self._seed)
         
-        if task_id and task_id in TASK_MAP:
-            self._active_task_id = task_id
-            self._tasks = [dict(t, difficulty=task_id.split("_")[-1]) for t in TASK_MAP[task_id]]
+        if task and task in TASK_MAP:
+            self._active_task_id = task
+            self._tasks = [dict(t, difficulty=task.split("_")[-1]) for t in TASK_MAP[task]]
         else:
             # Default behavior: combine all if no specific task requested
             self._active_task_id = "trustchain_all"

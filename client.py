@@ -1,7 +1,7 @@
 
 """Openenv Environment Client for TrustChain."""
 
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from openenv.core import EnvClient
 from openenv.core.client_types import StepResult
@@ -23,6 +23,13 @@ class TrustchainEnv(
     enabling efficient multi-step interactions with lower latency.
     Each client instance has its own dedicated environment session on the server.
     """
+
+    async def reset(self, task: Optional[str] = None, seed: Optional[int] = None) -> StepResult[TrustchainObservation]:
+        """
+        Reset the environment and return the initial observation.
+        """
+        payload = {"task": task, "seed": seed}
+        return await super().reset(**payload)
 
     def _step_payload(self, action: TrustchainAction) -> Dict[str, Any]:
         """
