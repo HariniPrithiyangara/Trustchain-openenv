@@ -138,12 +138,20 @@ def get_model_decision(
 
 
 # ── Task Execution Loop ───────────────────────────────────────────────────────
+# Total possible steps per task bucket for normalization
+TASK_LENGTHS = {
+    "trustchain_easy": 6,
+    "trustchain_medium": 6,
+    "trustchain_hard": 8
+}
+
 async def run_task(client: OpenAI, env: TrustchainEnv, task_id: str) -> None:
     log_start(task=task_id, env=BENCHMARK, model=MODEL_NAME)
     
     rewards: List[float] = []
     steps_taken: int = 0
     success: bool = False
+    max_steps = TASK_LENGTHS.get(task_id, 10)
     
     try:
         result = await env.reset(task_id=task_id)
@@ -175,8 +183,8 @@ async def run_task(client: OpenAI, env: TrustchainEnv, task_id: str) -> None:
             if error:
                 break
 
-        # Normalize score: sum(rewards) / total_steps_in_this_task
-        score = sum(rewards) / float(steps_taken) if steps_taken > 0 else 0.0
+        # Normalize score: sum(rewards) / max_steps_possible
+        score = sum(rewards) / float(max_steps)
         score = max(0.0, min(1.0, score))
         success = score >= 0.7
 
