@@ -1,3 +1,4 @@
+# Trigger build: v1.0.2
 """
 app.py — TrustChain OpenEnv HTTP server
 Exposes /reset, /step, /state, /tasks, /health endpoints.
