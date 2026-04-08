@@ -13,6 +13,7 @@ COPY openenv.yaml .
 
 # OpenEnv spec
 ENV PORT=8000
+ENV ENABLE_WEB_INTERFACE=true
 EXPOSE 8000
 
 CMD ["python", "-m", "server.app"]
