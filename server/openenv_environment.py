@@ -1,8 +1,7 @@
-
 """TrustChain OpenEnv environment implementation."""
 
 import random
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 from uuid import uuid4
 
 from openenv.core.env_server.interfaces import Environment
@@ -40,11 +39,17 @@ HARD_TASKS = [
     {"claim": "The medical procedure is experimental.", "context": "The procedure has FDA approval for use in adults over 65, but is still in Phase 2 trials for patients under 40.", "truth": "verify"},
 ]
 
+TASK_MAP = {
+    "trustchain_easy": EASY_TASKS,
+    "trustchain_medium": MEDIUM_TASKS,
+    "trustchain_hard": HARD_TASKS,
+}
+
 
 class TrustchainEnvironment(Environment):
     """
     TrustChain Environment for evaluating AI truth-checking agents.
-    Agents observe claims with optional context and decide whether to accept, reject, or verify them.
+    Supports separate named tasks for easy, medium, and hard difficulty levels.
     """
 
     SUPPORTS_CONCURRENT_SESSIONS: bool = True
@@ -52,30 +57,32 @@ class TrustchainEnvironment(Environment):
     def __init__(self):
         """Initialize the trustchain environment."""
         self._state = State(episode_id=str(uuid4()), step_count=0)
-        self._reset_count = 0
         self._seed = 42
-        self._rng = random.Random(self._seed)
-        self._tasks = self._build_tasks()
+        self._tasks = []
         self._current_task_idx = 0
+        self._active_task_id = "trustchain_easy"
 
-    def _build_tasks(self) -> List[Dict[str, Any]]:
-        """Build a deterministic but non-fixed episode task order."""
-        easy = [dict(t, difficulty="easy") for t in EASY_TASKS]
-        medium = [dict(t, difficulty="medium") for t in MEDIUM_TASKS]
-        hard = [dict(t, difficulty="hard") for t in HARD_TASKS]
-        
-        self._rng.shuffle(easy)
-        self._rng.shuffle(medium)
-        self._rng.shuffle(hard)
-        return easy + medium + hard
-
-    def reset(self) -> TrustchainObservation:
-        """Reset the environment to start a new episode."""
+    def reset(self, task_id: Optional[str] = None, seed: Optional[int] = None) -> TrustchainObservation:
+        """Reset the environment to start a new episode for a specific task."""
         self._state = State(episode_id=str(uuid4()), step_count=0)
-        self._reset_count += 1
+        
+        if seed is not None:
+            self._seed = seed
+        
+        self._rng = random.Random(self._seed)
+        
+        if task_id and task_id in TASK_MAP:
+            self._active_task_id = task_id
+            self._tasks = [dict(t, difficulty=task_id.split("_")[-1]) for t in TASK_MAP[task_id]]
+        else:
+            # Default behavior: combine all if no specific task requested
+            self._active_task_id = "trustchain_all"
+            easy = [dict(t, difficulty="easy") for t in EASY_TASKS]
+            medium = [dict(t, difficulty="medium") for t in MEDIUM_TASKS]
+            hard = [dict(t, difficulty="hard") for t in HARD_TASKS]
+            self._tasks = easy + medium + hard
 
-        self._rng = random.Random(self._seed + self._reset_count)
-        self._tasks = self._build_tasks()
+        self._rng.shuffle(self._tasks)
         self._current_task_idx = 0
 
         task = self._tasks[self._current_task_idx]
@@ -83,7 +90,7 @@ class TrustchainEnvironment(Environment):
             claim=task["claim"],
             context=task["context"],
             difficulty=task["difficulty"],
-            feedback="Environment reset. Please evaluate the first claim.",
+            feedback=f"Environment reset for {self._active_task_id}. Please evaluate the first claim.",
             done=False,
             reward=0.0,
         )
@@ -114,7 +121,7 @@ class TrustchainEnvironment(Environment):
             reward = 0.2   # 🚩 High-risk: failed to identify ambiguity in a frontier case
             feedback = f"Risky decision. This hard claim lacked definitive evidence for '{action.decision}'."
         else:
-            reward = 0.0   # ❌ Wrong verdict: catastrophic failure (e.g. accept instead of reject)
+            reward = 0.0   # ❌ Wrong verdict: catastrophic failure
             feedback = f"Incorrect. The correct verdict was '{expected_action}'."
 
         self._current_task_idx += 1
@@ -130,7 +137,8 @@ class TrustchainEnvironment(Environment):
             reward=reward,
             metadata={
                 "expected": expected_action,
-                "step": self._state.step_count
+                "step": self._state.step_count,
+                "task_id": self._active_task_id
             }
         )
 

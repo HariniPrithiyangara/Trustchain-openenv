@@ -42,6 +42,18 @@ TrustChain is a rigorous, real-world OpenEnv RL environment that trains and eval
 
 ---
 
+## 📚 Tasks
+
+TrustChain includes three core tasks, each representing a different difficulty level:
+
+- **`trustchain_easy`**: Basic factual checks requiring world knowledge. (6 claims)
+- **`trustchain_medium`**: Contextual reasoning, arithmetic, and logic checks. (6 claims)
+- **`trustchain_hard`**: Epistemic ambiguity and frontier reasoning cases. (8 claims)
+
+Each task is evaluated independently with its own `reset()` and `grader`.
+
+---
+
 ## 🏆 Reward Function
 
 TrustChain uses a **five-tier dense reward system** to provide meaningful learning signals:

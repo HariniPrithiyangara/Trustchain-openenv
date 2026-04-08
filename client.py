@@ -1,3 +1,4 @@
+
 """Openenv Environment Client for TrustChain."""
 
 from typing import Dict, Any
@@ -7,9 +8,9 @@ from openenv.core.client_types import StepResult
 from openenv.core.env_server.types import State
 
 try:
-    from .models import TrustchainAction, TrustchainObservation
-except ImportError:
     from models import TrustchainAction, TrustchainObservation
+except ImportError:
+    from openenv.models import TrustchainAction, TrustchainObservation
 
 
 class TrustchainEnv(

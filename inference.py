@@ -1,18 +1,8 @@
-
 """
 TrustChain OpenEnv — Inference Script
 ======================================
 Hackathon-compliant baseline inference script for the TrustChain environment.
-
-Environment Variables (required):
-    API_BASE_URL      The API endpoint for the LLM (default: HF router)
-    MODEL_NAME        The model identifier (default: Llama-3.3-70B-Instruct)
-    HF_TOKEN          Your Hugging Face / API key (NO default — must be set)
-    LOCAL_IMAGE_NAME  Optional: local Docker image name for from_docker_image()
-
-Usage:
-    export HF_TOKEN="hf_..."
-    uv run python inference.py
+Iterates through easy, medium, and hard tasks.
 """
 
 import asyncio
@@ -26,14 +16,13 @@ from client import TrustchainEnv
 from models import TrustchainAction
 
 # ── Environment configuration (per hackathon spec) ────────────────────────────
-# Defaults set ONLY for API_BASE_URL and MODEL_NAME — never for HF_TOKEN
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "meta-llama/Llama-3.3-70B-Instruct")
 HF_TOKEN = os.getenv("HF_TOKEN")  # No default — must be provided
-LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")  # Optional: for from_docker_image()
+LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")
 
-TASK_NAME = "trustchain_eval"
 BENCHMARK = "trustchain"
+TASKS = ["trustchain_easy", "trustchain_medium", "trustchain_hard"]
 
 # ── System prompt: chain-of-thought reasoning, single-word output ─────────────
 SYSTEM_PROMPT = textwrap.dedent(
@@ -49,16 +38,11 @@ SYSTEM_PROMPT = textwrap.dedent(
       verify  → The claim is ambiguous, uncertain, uses absolute language where context is partial,
                 or requires external information not available here.
 
-    REASONING CHECKLIST (do this mentally before answering):
-      1. NUMERICAL: If the claim involves numbers, compute the exact math.
-         e.g., 6000/hour ÷ 60 = 100/minute → equivalent → accept.
-         e.g., ($12M - $10M) / $10M = 20% → matches claim → accept.
-      2. CONTEXTUAL: Does the context directly confirm or contradict the claim?
-         If context says "partially" or "pending" or "looking into", the claim is NOT fully confirmed.
-      3. ABSOLUTE LANGUAGE: Words like "fully", "always", "unbreakable", "explicitly", "all patients"
-         almost always mean → verify (unless context is 100% definitive).
-      4. CONTRADICTION: If context directly disproves the claim → reject.
-      5. GENERAL KNOWLEDGE: For no-context tasks, use world knowledge to accept or reject.
+    REASONING CHECKLIST:
+      1. NUMERICAL: Compute exact math. (e.g. 6000/hour = 100/minute).
+      2. CONTEXTUAL: Does context confirm or contradict?
+      3. ABSOLUTE LANGUAGE: "fully", "always", "unbreakable" often mean → verify.
+      4. GENERAL KNOWLEDGE: For no-context tasks, use world knowledge.
 
     Reply with EXACTLY ONE word: accept, reject, or verify.
     No explanation. No punctuation. No other text.
@@ -82,7 +66,6 @@ def log_step(step: int, action: str, reward: float, done: bool, error: Optional[
 
 def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> None:
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
-    # score uses 2 decimal places to match spec exactly (e.g. 1.00)
     print(
         f"[END] success={str(success).lower()} steps={steps} score={score:.2f} rewards={rewards_str}",
         flush=True,
@@ -110,13 +93,6 @@ def get_model_decision(
     context: Optional[str],
     difficulty: str,
 ) -> str:
-    """
-    Two-pass CoT strategy:
-      Pass 1 — Ask model to reason step-by-step through the claim.
-      Pass 2 — Extract the final single-word decision from the reasoning.
-
-    Falls back to "verify" (safest option) on any API error.
-    """
     user_prompt = build_user_prompt(claim, context, difficulty)
     try:
         # Pass 1: generate step-by-step reasoning
@@ -128,7 +104,7 @@ def get_model_decision(
                 {"role": "assistant", "content": "Let me reason through this carefully:\n"},
             ],
             temperature=0.0,
-            max_tokens=200,
+            max_tokens=250,
         )
         thought = reasoning_resp.choices[0].message.content or ""
 
@@ -138,10 +114,7 @@ def get_model_decision(
             messages=[
                 {
                     "role": "system",
-                    "content": (
-                        "You are a precise decision extractor. "
-                        "Given a reasoning block, output EXACTLY ONE word: accept, reject, or verify."
-                    ),
+                    "content": "You are a precise decision extractor. Given reasoning, output EXACTLY ONE word: accept, reject, or verify.",
                 },
                 {
                     "role": "user",
@@ -149,16 +122,13 @@ def get_model_decision(
                 },
             ],
             temperature=0.0,
-            max_tokens=5,
+            max_tokens=10,
         )
         text = (decision_resp.choices[0].message.content or "").strip().lower()
 
-        if "accept" in text:
-            return "accept"
-        if "reject" in text:
-            return "reject"
-        if "verify" in text:
-            return "verify"
+        for word in ["accept", "reject", "verify"]:
+            if word in text:
+                return word
         return "verify"  # safe fallback
 
     except Exception as exc:
@@ -167,50 +137,25 @@ def get_model_decision(
         return "verify"
 
 
-# ── Main episode loop ─────────────────────────────────────────────────────────
-async def main() -> None:
-    # Check for HF_TOKEN as it is mandatory
-    if not HF_TOKEN:
-        import sys
-        print("[ERROR] HF_TOKEN environment variable is not set. Disqualified.", file=sys.stderr)
-        return
-
-    # All LLM calls use the OpenAI client with env-var credentials
-    client = OpenAI(
-        base_url=API_BASE_URL,
-        api_key=HF_TOKEN,
-    )
-
-    # Connect to environment (Docker image or localhost server)
-    if LOCAL_IMAGE_NAME:
-        env = await TrustchainEnv.from_docker_image(LOCAL_IMAGE_NAME)
-    else:
-        env = TrustchainEnv(base_url="http://localhost:8000")
-        await env.connect()
-
+# ── Task Execution Loop ───────────────────────────────────────────────────────
+async def run_task(client: OpenAI, env: TrustchainEnv, task_id: str) -> None:
+    log_start(task=task_id, env=BENCHMARK, model=MODEL_NAME)
+    
     rewards: List[float] = []
     steps_taken: int = 0
-    score: float = 0.0
     success: bool = False
-
-    log_start(task=TASK_NAME, env=BENCHMARK, model=MODEL_NAME)
-
+    
     try:
-        result = await env.reset()
+        result = await env.reset(task_id=task_id)
         done = result.done
 
-        # Episode ends when done=True (after 20 tasks)
+        # OpenEnv episodes for TrustChain are finite (6-8 steps per task)
         for step in range(1, 25):
             if done:
                 break
 
             obs = result.observation
-            decision = get_model_decision(
-                client,
-                obs.claim,
-                obs.context,
-                obs.difficulty,
-            )
+            decision = get_model_decision(client, obs.claim, obs.context, obs.difficulty)
             action = TrustchainAction(decision=decision)  # type: ignore[call-arg]
 
             try:
@@ -225,24 +170,43 @@ async def main() -> None:
 
             rewards.append(reward)
             steps_taken = step
-
             log_step(step=step, action=decision, reward=reward, done=done, error=error)
 
             if error:
                 break
 
-        # Normalise score to [0, 1]
-        total_possible = float(steps_taken) if steps_taken > 0 else 1.0
-        score = sum(rewards) / total_possible
+        # Normalize score: sum(rewards) / total_steps_in_this_task
+        score = sum(rewards) / float(steps_taken) if steps_taken > 0 else 0.0
         score = max(0.0, min(1.0, score))
-        success = score >= 0.7  # Higher success threshold for 100/100
+        success = score >= 0.7
 
+    finally:
+        log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
+
+
+# ── Main entry point ──────────────────────────────────────────────────────────
+async def main() -> None:
+    if not HF_TOKEN:
+        import sys
+        print("[ERROR] HF_TOKEN not set. Mandatory for evaluation.", file=sys.stderr)
+        return
+
+    client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
+
+    if LOCAL_IMAGE_NAME:
+        env = await TrustchainEnv.from_docker_image(LOCAL_IMAGE_NAME)
+    else:
+        env = TrustchainEnv(base_url="http://localhost:8000")
+        await env.connect()
+
+    try:
+        for task_id in TASKS:
+            await run_task(client, env, task_id)
     finally:
         try:
             await env.close()
         except Exception:
             pass
-        log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
 
 
 if __name__ == "__main__":

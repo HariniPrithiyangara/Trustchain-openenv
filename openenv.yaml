@@ -1,5 +1,5 @@
 spec_version: 1
-name: trustchain-openenv
+name: trustchain
 type: space
 runtime: fastapi
 app: server.app:app

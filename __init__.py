@@ -1,9 +1,12 @@
 
-
 """TrustChain OpenEnv environment package."""
 
-from .client import TrustchainEnv
-from .models import TrustchainAction, TrustchainObservation
+try:
+    from .client import TrustchainEnv
+    from .models import TrustchainAction, TrustchainObservation
+except (ImportError, ValueError):
+    from client import TrustchainEnv
+    from models import TrustchainAction, TrustchainObservation
 
 __all__ = [
     "TrustchainAction",
