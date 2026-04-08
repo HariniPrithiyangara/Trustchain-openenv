@@ -1,5 +1,5 @@
-# AI Backend Workflow Environment
-# Copyright (c) 2026 Backend Automation Contributors
+# TrustChain OpenEnv
+# Copyright (c) 2026 TrustChain Contributors
 # Licensed under the MIT License
 
 [build-system]
@@ -7,9 +7,9 @@ requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "backend-workflow-openenv"
+name = "trustchain-openenv"
 version = "0.1.0"
-description = "AI Backend Workflow Automation: A high-utility OpenEnv benchmark"
+description = "TrustChain: Multi-Agent Verification Environment"
 requires-python = ">=3.10"
 dependencies = [
     "openenv-core[core]>=0.2.2",
@@ -27,5 +27,5 @@ server = "server.app:main"
 
 [tool.setuptools]
 include-package-data = true
-packages = ["server", "my_env_v4"]
-package-dir = { "server" = "server", "my_env_v4" = "my_env_v4" }
+packages = ["server"]
+package-dir = { "server" = "server" }

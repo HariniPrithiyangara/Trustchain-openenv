@@ -1,6 +1,6 @@
 spec_version: 1
-name: backend_workflow
-description: AI agent workflow simulation for backend API automation.
+name: trustchain
+description: TrustChain Verification Environment for multi-agent hallucination detection.
 type: space
 runtime: fastapi
 app: server.app:app
@@ -11,4 +11,4 @@ tasks:
   - medium
   - hard
 
-reward_range: [0.0, 1.0]
+reward_range: [-0.5, 1.0]
