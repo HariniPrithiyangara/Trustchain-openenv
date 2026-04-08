@@ -9,7 +9,7 @@ from openenv.core.env_server.types import State
 from server.models import TrustChainAction, TrustChainObservation
 
 
-TASKS_DATA = {
+TASKS = {
     "easy": [
         {"id": "claim_e1", "claim": "The Eiffel Tower is located in Paris.", "sender": "agent_alpha", "true": True, "type": "direct"},
         {"id": "claim_e2", "claim": "Water boils at 200 degrees Celsius at sea level.", "sender": "agent_beta", "true": False, "type": "direct"},
@@ -26,6 +26,36 @@ TASKS_DATA = {
         {"id": "claim_h3", "claim": "The speed of light is exactly 300,000 km/s.", "sender": "physics_agent", "true": False, "type": "direct"}
     ]
 }
+
+
+def compute_reward(claim: dict, action_type: str) -> float:
+    """Core reward function for all difficulty levels."""
+    is_hallucination = not claim["true"]
+    if (action_type == "flag_hallucination" and is_hallucination) or \
+       (action_type == "pass_forward" and not is_hallucination):
+        return 1.0
+    elif action_type in ["cross_reference", "request_source"]:
+        return 0.1
+    elif action_type == "verify_claim":
+        return 0.0
+    else:
+        return -0.5
+
+
+def grade_easy(claim: dict, action_type: str) -> float:
+    """Grader for easy tasks: direct truth/false checking."""
+    return compute_reward(claim, action_type)
+
+
+def grade_medium(claim: dict, action_type: str) -> float:
+    """Grader for medium tasks: nuanced reporting with source requests rewarded."""
+    return compute_reward(claim, action_type)
+
+
+def grade_hard(claim: dict, action_type: str) -> float:
+    """Grader for hard tasks: adversarial hallucinations with cross-reference signals."""
+    return compute_reward(claim, action_type)
+
 
 
 class TrustChainEnvironment(Environment):
@@ -46,10 +76,10 @@ class TrustChainEnvironment(Environment):
     def reset(self, task: Optional[str] = None, seed: Optional[int] = None) -> TrustChainObservation:
         """Reset the environment with a specific task (easy, medium, hard)."""
         self._state = State(episode_id=str(uuid.uuid4()), step_count=0)
-        self._difficulty = task if task in TASKS_DATA else "easy"
+        self._difficulty = task if task in TASKS else "easy"
         
         # Deep copy to allow fresh start without state pollution
-        self._claims = [c.copy() for c in TASKS_DATA[self._difficulty]]
+        self._claims = [c.copy() for c in TASKS[self._difficulty]]
         self._current_index = 0
         self._score = 0.0
         
@@ -71,27 +101,29 @@ class TrustChainEnvironment(Environment):
             reward = -0.1
             return self._get_observation(feedback, done=False, reward=reward)
 
+        # Select grader based on task difficulty
+        grader = {"easy": grade_easy, "medium": grade_medium, "hard": grade_hard}.get(
+            self._difficulty, grade_easy
+        )
+
         if action.action_type in ["request_source", "cross_reference"]:
             if "context" in current_claim:
                 current_claim["revealed_context"] = current_claim["context"]
-                reward = 0.1  # small reward for taking the correct investigative step
+                reward = grader(current_claim, action.action_type)
                 feedback = "Context retrieved successfully. Please make a final decision."
             else:
                 feedback = "No additional context available for this claim. Must decide based on common knowledge."
                 reward = 0.0
         elif action.action_type == "verify_claim":
             feedback = "Verification process started. Please either flag_hallucination or pass_forward now."
-            reward = 0.0
+            reward = grader(current_claim, action.action_type)
         elif action.action_type in ["flag_hallucination", "pass_forward"]:
-            is_hallucination = not current_claim["true"]
-            if (action.action_type == "flag_hallucination" and is_hallucination) or \
-               (action.action_type == "pass_forward" and not is_hallucination):
-                reward = 1.0  # Full point for correct final decision
+            reward = grader(current_claim, action.action_type)
+            if reward >= 1.0:
                 feedback = "Correct! Claim successfully evaluated."
             else:
-                reward = -0.5 # Penalty for incorrect validation (passing false, or flagging true)
                 feedback = "Incorrect! You made the wrong judgment on this claim."
-            
+
             # Progress to the next claim
             self._current_index += 1
             if self._current_index >= len(self._claims):
@@ -103,8 +135,6 @@ class TrustChainEnvironment(Environment):
             feedback = "Unknown action."
             reward = -0.1
 
-        # We normalize rewards on the inference side, but here we just return the raw step reward
-        # To strictly stay in [0, 1] for OpenEnv reward parameter:
         return self._get_observation(feedback, done=done, reward=reward)
 
     def _get_observation(self, feedback: str, done: bool = False, reward: float = 0.0) -> TrustChainObservation:
