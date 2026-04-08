@@ -1,6 +1,14 @@
 spec_version: 1
-name: cloudops
+name: backend_workflow
+description: AI agent workflow simulation for backend API automation.
 type: space
 runtime: fastapi
 app: server.app:app
 port: 8000
+
+tasks:
+  - easy
+  - medium
+  - hard
+
+reward_range: [0.0, 1.0]

@@ -1,23 +1,22 @@
 ---
-title: CloudOps Incident Responder
-colorFrom: blue
-colorTo: green
+title: AI Backend Workflow Automation
+colorFrom: indigo
+colorTo: blue
 sdk: docker
 pinned: true
 app_port: 8000
 tags:
   - openenv
-  - sre
-  - devops
-  - reinforcement-learning
+  - backend-automation
   - ai-agents
+  - workflow-optimization
 ---
 
 <div align="center">
 
-# 🛠️ CloudOps Incident Responder
+# ⚙️ AI Backend Workflow Automation
 
-### A High-Fidelity OpenEnv Benchmark for SRE and DevOps AI Agents
+### A Real-World OpenEnv Benchmark for Backend API Automation Agents
 
 [![OpenEnv Compatible](https://img.shields.io/badge/OpenEnv-Compatible-6366f1?style=for-the-badge)](https://github.com/meta-pytorch/OpenEnv)
 [![🤗 HF Space](https://img.shields.io/badge/🤗%20HF%20Space-Live-ff6b35?style=for-the-badge)](https://huggingface.co/spaces/HariniPrithiyangara/trustchain-env)
@@ -28,88 +27,75 @@ tags:
 
 ---
 
-## 🎯 Project Overview
+## 🎯 Overview
 
-**CloudOps Incident Responder** is a rigorous, real-world OpenEnv environment designed to evaluate AI agents on Site Reliability Engineering (SRE) tasks. Unlike synthetic benchmarks, this environment simulates a production cloud infrastructure where agents must diagnose and remediate critical incidents.
+The **AI Backend Workflow Automation** environment is a high-utility benchmark designed to evaluate AI agents on complex, multi-step backend operations. Unlike synthetic tasks, this environment simulates real-world API workflows including data fetching, input validation, and error recovery.
 
-### Why This Environment Matters
-Multi-agent systems and autonomous agents are increasingly tasked with managing infrastructure. CloudOps provides a safe, reproducible benchmark to measure an agent's ability to:
-1. **Diagnose** issues via log analysis.
-2. **Remediate** incidents through resource scaling, service restarts, and rollbacks.
-3. **Reason** through cascading failures without causing further downtime.
+### Key Capabilities Evaluated
+- **Data Retrieval**: Fetching structured data from diverse database resources.
+- **Validation**: Enforcing schema compliance and detecting payload corruption.
+- **Error Remediation**: Applying logic to fix malformed data and ensure workflow continuity.
+- **Response Management**: Returning finalized, validated responses to upstream services.
 
 ---
 
 ## 🎮 Action & Observation Spaces
 
-### Action Space (`CloudOpsAction`)
-Agents can perform the following actions:
-- `list_resources`: Enumerate all infrastructure components and their current state.
-- `read_logs`: Retrieve recent stdout/stderr logs for a specific resource.
-- `scale_up`: Increase CPU/RAM allocation for a VM to handle spikes.
-- `restart_service`: Restart a failing application service.
-- `rollback`: Revert a service to its previous stable deployment version.
-- `delete_resource`: Permanently remove a resource (**High Risk**).
+### Action Space (`MyEnvV4Action`)
+- `fetch_data`: Retrieve raw data from a specified resource.
+- `validate_input`: Run validation checks against the current data payload.
+- `fix_error`: Apply remediation logic to malformed or corrupted data.
+- `return_response`: Finalize the workflow and return the processed output.
+- `query_db`: Execute complex queries against internal data stores.
 
-### Observation Space (`CloudOpsObservation`)
-- `alert`: A human-readable system alert (e.g., "High CPU usage detected").
-- `resources`: A JSON list of resources with metrics (CPU, Memory, Version).
-- `logs`: Diagnostic information retrieved from the system.
-- `feedback`: Immediate guidance on the effectiveness of the agent's actions.
+### Observation Space (`MyEnvV4Observation`)
+- `status`: Current stage of the backend workflow.
+- `data`: The payload returned by the previous successful action.
+- `error_message`: Detailed diagnostic info when an action fails or detects issues.
+- `feedback`: A continuous learning signal providing progress guidance.
 
 ---
 
 ## 📚 Task Curriculum
 
-| Task ID | Difficulty | Scenario | Remediation Steps |
+| Task ID | Level | Scenario | Ideal Action Sequence |
 | :--- | :--- | :--- | :--- |
-| `cloudops_easy` | Easy | High CPU spike on frontend. | `scale_up` |
-| `cloudops_medium` | Medium | Memory leak in API service. | `read_logs` → `restart_service` |
-| `cloudops_hard` | Hard | Cascading deployment failure. | `read_logs` → `rollback` → `scale_up` |
+| `easy` | 🟢 | Basic Query Handling | `fetch_data` |
+| `medium` | 🟡 | Multi-step Workflow | `fetch_data` → `validate_input` → `return_response` |
+| `hard` | 🔴 | Error Recovery | `fetch_data` → `validate_input` (fails) → `fix_error` → `return_response` |
 
 ---
 
-## 🏆 Reward Function
+## 🏆 Reward System
 
-The environment uses a **shaped reward system** to provide continuous learning signals:
+The environment implements a **highly shaped reward function** to facilitate agent learning:
 
-| Action Result | Reward | Description |
+| Result | Reward | Description |
 | :--- | :--- | :--- |
-| **Success** | `+1.00` | Incident fully resolved. |
-| **Progress** | `+0.30 to +0.50` | Correct diagnostic or partial remediation step. |
-| **Neutral** | `0.00` | Action had no effect. |
-| **Wrong Target** | `-0.20` | Action applied to the incorrect resource. |
-| **Catastrophic** | `-1.00` | Production resource deleted (Terminates episode). |
+| **Full Success** | `+1.00` | Entire workflow sequence completed accurately. |
+| **Progress** | `+0.30` | Correct action performed in the expected sequence. |
+| **Out of Order** | `-0.10` | Action performed at the wrong stage of the workflow. |
+| **Trivial Action** | `0.00` | Redundant or no-op action. |
 
 ---
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Docker
-- Python 3.10+
-- `uv` package manager
-
-### Installation & Local Run
 ```bash
-# Clone the repository
+# Clone and Sync
 git clone https://github.com/HariniPrithiyangara/Trustchain-openenv.git
 cd Trustchain-openenv
-
-# Install dependencies
 uv sync
 
-# Start the environment server
+# Run Environment Server
 uv run server
-```
 
-### Running Inference
-```bash
-export HF_TOKEN="your_huggingface_token"
+# Run Inference
+export HF_TOKEN="your_token"
 python inference.py
 ```
 
 ---
 
 ## 📄 License
-MIT License. See [LICENSE](LICENSE) for details.
+MIT License.

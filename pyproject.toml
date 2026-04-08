@@ -1,5 +1,5 @@
-# CloudOps: Incident Responder Environment
-# Copyright (c) 2026 CloudOps Contributors
+# AI Backend Workflow Environment
+# Copyright (c) 2026 Backend Automation Contributors
 # Licensed under the MIT License
 
 [build-system]
@@ -7,9 +7,9 @@ requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cloudops-openenv"
+name = "backend-workflow-openenv"
 version = "0.1.0"
-description = "CloudOps Incident Responder: High-fidelity SRE benchmark"
+description = "AI Backend Workflow Automation: A high-utility OpenEnv benchmark"
 requires-python = ">=3.10"
 dependencies = [
     "openenv-core[core]>=0.2.2",
@@ -27,5 +27,5 @@ server = "server.app:main"
 
 [tool.setuptools]
 include-package-data = true
-packages = ["server"]
-package-dir = { "server" = "server" }
+packages = ["server", "my_env_v4"]
+package-dir = { "server" = "server", "my_env_v4" = "my_env_v4" }

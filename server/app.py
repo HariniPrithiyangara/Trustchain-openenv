@@ -1,9 +1,6 @@
 
 """
 FastAPI application for the Openenv Environment.
-
-This module creates an HTTP server that exposes the OpenenvEnvironment
-over HTTP and WebSocket endpoints, compatible with EnvClient.
 """
 
 import os
@@ -14,21 +11,21 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
     from openenv.core.env_server.http_server import create_app
-except Exception as e:  # pragma: no cover
+except Exception as e:
     raise ImportError(
         "openenv-core is required for the web interface. Install with 'pip install openenv-core[core]'"
     ) from e
 
-from models import CloudOpsAction, CloudOpsObservation
-from server.openenv_environment import CloudOpsEnvironment
+from my_env_v4.env import MyEnvV4Env
+from my_env_v4.models import MyEnvV4Action, MyEnvV4Observation
 
 
 # Create the app with web interface and README integration
 app = create_app(
-    CloudOpsEnvironment,
-    CloudOpsAction,
-    CloudOpsObservation,
-    env_name="cloudops",
+    MyEnvV4Env,
+    MyEnvV4Action,
+    MyEnvV4Observation,
+    env_name="backend_workflow",
     max_concurrent_envs=1,
 )
 
