@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Install project
 COPY pyproject.toml .
-COPY server/Requirements.txt* ./server/
+COPY server/requirements.txt* ./server/
 RUN pip install --no-cache-dir -e .
 
 # Copy environment code

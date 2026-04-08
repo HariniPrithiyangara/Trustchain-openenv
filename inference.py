@@ -71,9 +71,11 @@ def get_model_action(client: OpenAI, obs: TrustChainObservation) -> TrustChainAc
         )
         text = (completion.choices[0].message.content or "").strip()
         
-        # Extract json safely
-        if "{" in text:
-            text = text[text.find("{"):text.rfind("}")+1]
+        if "{" in text and "}" in text:
+            start_idx = text.find("{")
+            end_idx = text.rfind("}") + 1
+            if start_idx != -1 and end_idx != 0:
+                text = text[start_idx:end_idx]
         
         data = json.loads(text)
         return TrustChainAction(
