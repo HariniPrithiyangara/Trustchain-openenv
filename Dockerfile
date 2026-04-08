@@ -1,9 +1,9 @@
 
-# OpenEnv Dockerfile
-# Optimized for Hugging Face Spaces and RL evaluation
-
 ARG BASE_IMAGE=python:3.11-slim
 FROM ${BASE_IMAGE} AS builder
+
+LABEL maintainer="TrustChain Contributors"
+LABEL description="Optimized OpenEnv environment for TrustChain"
 
 WORKDIR /app
 
