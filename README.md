@@ -1,3 +1,12 @@
+---
+title: Trustchain Env
+emoji: 🔗
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+---
+
 # 🔗 TrustChain: Multi-Agent Verification Environment
 
 **GitHub Repository:** [https://github.com/HariniPrithiyangara/Trustchain-openenv](https://github.com/HariniPrithiyangara/Trustchain-openenv)  
