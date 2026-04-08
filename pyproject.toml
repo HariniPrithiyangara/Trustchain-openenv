@@ -1,0 +1,27 @@
+[project]
+name = "trustchain-env"
+version = "1.0.0"
+description = "TrustChain OpenEnv — a supply-chain credential verification environment"
+authors = [
+    { name = "HariniPrithiyangara" }
+]
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.29.0",
+    "pydantic>=2.0.0",
+    "openai>=1.0.0",
+    "requests>=2.31.0",
+    "pyyaml>=6.0",
+    "openenv-core>=0.2.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["trustchain_env*", "server*"]
+
+[project.scripts]
+server = "server.app:main"
