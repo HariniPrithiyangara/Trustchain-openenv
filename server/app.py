@@ -67,7 +67,7 @@ def step(req: StepRequest) -> dict:
         state = result.get("state", {})
         task_id = state.get("task_id", "verify_credential")
         grader = _GRADERS.get(task_id)
-        score = grader(state) if grader else 0.0
+        score = grader(state) if grader else 0.01
         result["score"] = round(score, 4)
 
     return result

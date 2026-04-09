@@ -94,21 +94,21 @@ class TrustChainEnvironment:
             task_id=self._task_id,
             step=0,
         )
-        return {"observation": obs.model_dump(), "done": False, "reward": 0.0}
+        return {"observation": obs.model_dump(), "done": False, "reward": 0.01}
 
     # ------------------------------------------------------------------ step
     def step(self, action: dict) -> dict:
         if self._done:
             obs = TrustChainObservation(done=True, task_id=self._task_id,
                                         step=self._step, last_result="Episode already complete.")
-            return {"observation": obs.model_dump(), "done": True, "reward": 0.0,
+            return {"observation": obs.model_dump(), "done": True, "reward": 0.01,
                     "state": self._grader_state}
 
         self._step += 1
         self._grader_state["steps_taken"] = self._step
         action_type = str(action.get("action_type", "done"))
         target_id = str(action.get("target_id", ""))
-        reward = 0.0
+        reward = 0.01
         last_result = ""
         error = None
         done = False
@@ -142,19 +142,20 @@ class TrustChainEnvironment:
             chain = [r["issuer_did"].split(":")[-1] for r in LEDGER if r["product_id"] == target_id]
             last_result = " → ".join(chain) if chain else "No chain found."
             self._grader_state["agent_chain"] = chain
-            reward = 0.3
+            reward = 0.31
 
         elif action_type == "report":
             self._grader_state["agent_credential_id"] = target_id
             self._grader_state["agent_reason"] = str(action.get("reason", ""))
             self._grader_state["agent_remediation"] = str(action.get("remediation", ""))
-            reward = 0.5
+            reward = 0.51
             last_result = "Report submitted."
             done = True
 
         elif action_type == "done":
             done = True
             last_result = "Agent signalled done."
+            reward = 0.01
 
         else:
             error = f"Unknown action_type: '{action_type}'"

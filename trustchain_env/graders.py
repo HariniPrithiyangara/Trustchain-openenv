@@ -16,7 +16,8 @@ from typing import Any
 
 
 def _clamp(value: float) -> float:
-    return max(0.0, min(1.0, value))
+    # Strictly between 0 and 1 as per Phase 2 Validator requirement
+    return max(0.01, min(0.99, value))
 
 
 # ---------------------------------------------------------------------------
@@ -40,7 +41,7 @@ class VerifyCredentialGrader:
         agent: str = str(state.get("agent_verdict", "")).upper().strip()
 
         if not expected or not agent:
-            return 0.0
+            return 0.01
 
         # Full credit for correct verdict
         if expected in agent:
@@ -54,7 +55,7 @@ class VerifyCredentialGrader:
         if any(kw in agent.lower() for kw in uncertain_keywords):
             return 0.3
 
-        return 0.0
+        return 0.01
 
 
 # ---------------------------------------------------------------------------
@@ -76,9 +77,9 @@ class TraceProvenanceGrader:
         agent = [s.strip() for s in state.get("agent_chain", [])]
 
         if not expected:
-            return 0.0
+            return 0.01
         if not agent:
-            return 0.0
+            return 0.01
 
         lcs_len = _lcs_length(expected, agent)
         order_score = lcs_len / len(expected)
